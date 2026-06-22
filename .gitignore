@@ -1,0 +1,22 @@
+# ============================================================
+# .gitignore RACINE (couvre tout le projet)
+# ============================================================
+
+# Secrets (double protection)
+**/.env
+**/.env.local
+**/.env.production
+
+# Environnements
+**/venv/
+**/node_modules/
+
+# Builds
+**/dist/
+**/staticfiles/
+**/media/
+
+# Système
+.DS_Store
+Thumbs.db
+*.log

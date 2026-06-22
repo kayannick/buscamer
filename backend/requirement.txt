@@ -1,0 +1,21 @@
+                                                                             UTILISEE OU:
+
+django==4.2.7    // FRAMEWORK WEB PRINCIMPALE                                 Partout
+
+djangorestframework==3.14.0    // TRANSFORME DJANGO EN API REST               Views, Serializer
+
+django-cors-headers==4.3.1    // AUTORISE REACT A PARLER  A DJANGO            Setting.py, middleware
+
+djangorestframework-simplejwt==5.3.0    // AUTHENTIFICATION PAR TOKENS JWT     Auth endpoints 
+
+psycopg2-binary==2.9.9    // CONNECTEUR PYTHON - POSTGRESQL                    Setting.py
+
+python-decouple==3.8   // LIRE LES VARIABLE D env (.env)                       Setting.py
+
+pillow==10.1.0           // MANIPULATION D IMAGE  PHOTOS, BUS, PROFILS         Models avec imageField
+
+
+
+freeze > requirements.txt
+type nul > .env
+ echo $null > .gitignore
