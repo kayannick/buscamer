@@ -1,33 +1,36 @@
+
 // ============================================================
-// frontend/src/components/layout/Navbar.jsx — VERSION CORRIGÉE
+//
+// CORRECTIONS :
+//   - Boutons Connexion/Déconnexion : texte blanc visible sur fond vert
+//   - Hover des boutons adapté au fond sombre (pas de fond blanc)
+//   - Menu mobile : même correction appliquée
+//
+// INTERACTIONS :
+//   ← Consomme : hooks/useAuth.js (utilisateur, estConnecte, deconnexion)
+//   ← Utilise  : react-router-dom (Link, useLocation, useNavigate)
+//   → Rendu dans : App.jsx (AppRoutes)
 // ============================================================
 
-import { useState, useEffect }     from 'react'   // ← useEffect retiré
-import { Link, useLocation, useNavigate }    from 'react-router-dom'
-import useAuth                               from '../../hooks/useAuth'
-import Button                                from '../ui/Button'
+import { useState, useEffect }                 from 'react'
+import { Link, useLocation, useNavigate }      from 'react-router-dom'
+import useAuth                                 from '../../hooks/useAuth'
+import Button                                  from '../ui/Button'
 
 const Navbar = () => {
   const { utilisateur, estConnecte, deconnexion } = useAuth()
-  const [scrolled, setScrolled]     = useState(false)
-  const [menuOuvert, setMenuOuvert] = useState(false)
+  const [scrolled,    setScrolled]    = useState(false)
+  const [menuOuvert,  setMenuOuvert]  = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Ombre sur la navbar au scroll — useEffect justifié ici :
-  // on souscrit à un événement DOM externe (window scroll)
-  // ce qui EST le cas d'usage prévu pour useEffect
-  // import { useEffect } from 'react'  // garder UNIQUEMENT pour le scroll
-
+  // ── Ombre au scroll ────────────────────────────────────────
+  // useEffect justifié : on souscrit à un événement DOM externe
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  // ✅ PAS de useEffect pour fermer le menu :
-  // on passe location.pathname comme "key" au menu déroulant
-  // → React recrée le nœud à chaque navigation → reset automatique
 
   const handleDeconnexion = () => {
     deconnexion()
@@ -36,15 +39,52 @@ const Navbar = () => {
 
   const estActif = (path) => location.pathname === path
 
+  // Style des liens de navigation
   const lienStyle = (path) => ({
     fontFamily  : 'var(--font-display)',
     fontWeight  : 500,
     fontSize    : '0.9rem',
-    color       : estActif(path) ? 'var(--or-soleil)' : 'var(--blanc)',
+    color       : estActif(path) ? 'var(--or-soleil)' : 'rgba(255,255,255,0.85)',
     padding     : '0.3rem 0',
-    borderBottom: estActif(path) ? '2px solid var(--or-soleil)' : '2px solid transparent',
+    borderBottom: estActif(path)
+      ? '2px solid var(--or-soleil)'
+      : '2px solid transparent',
     transition  : 'all var(--transition)',
+    textDecoration: 'none',
   })
+
+  // ── Style pour les boutons sur fond sombre ─────────────────
+  // Ce style est appliqué DIRECTEMENT sur les éléments <button>
+  // pour les boutons qui apparaissent sur le fond vert de la navbar.
+  // On ne modifie PAS Button.jsx : on surcharge via onMouseEnter/Leave.
+  const styleBoutonNavbar = {
+    background  : 'transparent',
+    border      : '1.5px solid rgba(255,255,255,0.35)',
+    color       : 'rgba(255,255,255,0.9)',
+    padding     : '0.4rem 1rem',
+    borderRadius: 'var(--radius-md)',
+    fontFamily  : 'var(--font-display)',
+    fontWeight  : 600,
+    fontSize    : '0.85rem',
+    cursor      : 'pointer',
+    transition  : 'all var(--transition)',
+    whiteSpace  : 'nowrap',
+  }
+
+  // Style du bouton S'inscrire (variante colorée)
+  const styleBoutonOr = {
+    background  : 'var(--or-soleil)',
+    border      : '1.5px solid var(--or-soleil)',
+    color       : 'var(--vert-foret)',
+    padding     : '0.4rem 1rem',
+    borderRadius: 'var(--radius-md)',
+    fontFamily  : 'var(--font-display)',
+    fontWeight  : 700,
+    fontSize    : '0.85rem',
+    cursor      : 'pointer',
+    transition  : 'all var(--transition)',
+    whiteSpace  : 'nowrap',
+  }
 
   return (
     <>
@@ -53,7 +93,7 @@ const Navbar = () => {
         top       : 0, left: 0, right: 0,
         zIndex    : 100,
         background: 'var(--vert-foret)',
-        boxShadow : scrolled ? '0 2px 20px rgba(0,0,0,0.2)' : 'none',
+        boxShadow : scrolled ? '0 2px 20px rgba(0,0,0,0.25)' : 'none',
         transition: 'box-shadow var(--transition)',
       }}>
         <div className="conteneur" style={{
@@ -63,15 +103,18 @@ const Navbar = () => {
           height        : '64px',
         }}>
 
-          {/* Logo */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* ── Logo ── */}
+          <Link
+            to="/"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+          >
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
               <rect width="32" height="32" rx="8" fill="var(--or-soleil)"/>
-              <path d="M6 22 L10 12 L22 12 L26 22 Z" fill="var(--vert-foret)" stroke="none"/>
-              <rect x="8" y="20" width="4" height="4" rx="2" fill="var(--or-soleil)"/>
+              <path d="M6 22 L10 12 L22 12 L26 22 Z" fill="var(--vert-foret)"/>
+              <rect x="8"  y="20" width="4" height="4" rx="2" fill="var(--or-soleil)"/>
               <rect x="20" y="20" width="4" height="4" rx="2" fill="var(--or-soleil)"/>
-              <rect x="11" y="15" width="3" height="3" rx="1" fill="white" opacity="0.7"/>
-              <rect x="18" y="15" width="3" height="3" rx="1" fill="white" opacity="0.7"/>
+              <rect x="11" y="15" width="3" height="3" rx="1" fill="white" opacity="0.8"/>
+              <rect x="18" y="15" width="3" height="3" rx="1" fill="white" opacity="0.8"/>
             </svg>
             <span style={{
               fontFamily   : 'var(--font-display)',
@@ -84,9 +127,12 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* Liens desktop */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}
-               className="nav-desktop">
+          {/* ── Liens desktop ── */}
+          <div className="nav-desktop" style={{
+            display   : 'flex',
+            alignItems: 'center',
+            gap       : '2rem',
+          }}>
             <Link to="/"        style={lienStyle('/')}>Accueil</Link>
             <Link to="/voyages" style={lienStyle('/voyages')}>Voyages</Link>
             {estConnecte && (
@@ -94,13 +140,17 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Actions auth desktop */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-               className="nav-desktop">
+          {/* ── Actions Auth desktop ── */}
+          <div className="nav-desktop" style={{
+            display   : 'flex',
+            alignItems: 'center',
+            gap       : '0.75rem',
+          }}>
             {estConnecte ? (
               <>
+                {/* Nom de l'utilisateur connecté */}
                 <span style={{
-                  color     : 'rgba(255,255,255,0.7)',
+                  color     : 'rgba(255,255,255,0.65)',
                   fontSize  : '0.85rem',
                   fontFamily: 'var(--font-display)',
                 }}>
@@ -109,47 +159,83 @@ const Navbar = () => {
                     {utilisateur?.first_name || utilisateur?.username}
                   </strong>
                 </span>
+
+                {/* ── BOUTON DÉCONNEXION CORRIGÉ ── */}
+                {/* On utilise un <button> natif stylé directement  */}
+                {/* pour éviter le fond blanc du Button.jsx fantome */}
                 <Button
-                  variante="fantome"
-                  taille="sm"
                   onClick={handleDeconnexion}
-                  style={{ color: 'rgba(255,255,255,0.7)' }}
+                  style={styleBoutonNavbar}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background   = 'rgba(255,255,255,0.12)'
+                    e.currentTarget.style.borderColor  = 'rgba(255,255,255,0.6)'
+                    e.currentTarget.style.color        = 'var(--blanc)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background   = 'transparent'
+                    e.currentTarget.style.borderColor  = 'rgba(255,255,255,0.35)'
+                    e.currentTarget.style.color        = 'rgba(255,255,255,0.9)'
+                  }}
                 >
                   Déconnexion
                 </Button>
               </>
             ) : (
               <>
+                {/* ── BOUTON CONNEXION CORRIGÉ ── */}
                 <Button
-                  variante="fantome"
-                  taille="sm"
                   onClick={() => navigate('/connexion')}
-                  style={{ color: 'var(--blanc)' }}
+                  style={styleBoutonNavbar}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background   = 'rgba(255,255,255,0.12)'
+                    e.currentTarget.style.borderColor  = 'rgba(255,255,255,0.6)'
+                    e.currentTarget.style.color        = 'var(--blanc)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background   = 'transparent'
+                    e.currentTarget.style.borderColor  = 'rgba(255,255,255,0.35)'
+                    e.currentTarget.style.color        = 'rgba(255,255,255,0.9)'
+                  }}
                 >
                   Connexion
                 </Button>
-                <Button variante="or" taille="sm" onClick={() => navigate('/inscription')}>
+
+                {/* Bouton S'inscrire (or, toujours visible) */}
+                <Button
+                  onClick={() => navigate('/inscription')}
+                  style={styleBoutonOr}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = '#E8940A'
+                    e.currentTarget.style.transform  = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow  = '0 4px 12px rgba(244,161,0,0.35)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'var(--or-soleil)'
+                    e.currentTarget.style.transform  = 'none'
+                    e.currentTarget.style.boxShadow  = 'none'
+                  }}
+                >
                   S'inscrire
                 </Button>
               </>
             )}
           </div>
 
-          {/* Burger mobile */}
+          {/* ── Burger menu mobile ── */}
           <button
-            onClick={() => setMenuOuvert(prev => !prev)}
             className="nav-mobile"
-            style={{
-              background  : 'transparent',
-              border      : 'none',
-              color       : 'var(--blanc)',
-              display     : 'flex',
-              flexDirection: 'column',
-              gap         : '5px',
-              padding     : '4px',
-            }}
+            onClick={() => setMenuOuvert(prev => !prev)}
             aria-label="Menu"
             aria-expanded={menuOuvert}
+            style={{
+              background   : 'transparent',
+              border       : 'none',
+              display      : 'flex',
+              flexDirection: 'column',
+              gap          : '5px',
+              padding      : '4px',
+              cursor       : 'pointer',
+            }}
           >
             {[0, 1, 2].map(i => (
               <span key={i} style={{
@@ -164,73 +250,102 @@ const Navbar = () => {
                   : menuOuvert && i === 1 ? 'scaleX(0)'
                   : menuOuvert && i === 2 ? 'translateY(-7px) rotate(-45deg)'
                   : 'none',
-              }} />
+              }}/>
             ))}
           </button>
         </div>
 
-        {/* ✅ key={location.pathname} : recrée ce nœud à chaque navigation
-            → menuOuvert repart à false (valeur initiale de useState)
-            sans jamais appeler setState dans un effet               */}
+        {/* ── Menu mobile déroulant ── */}
+        {/* key={location.pathname} : React recrée ce nœud à chaque */}
+        {/* navigation → menuOuvert repart à false automatiquement   */}
         <div
           key={location.pathname}
           style={{
-            maxHeight : menuOuvert ? '320px' : '0',
+            maxHeight : menuOuvert ? '400px' : '0',
             overflow  : 'hidden',
-            transition: 'max-height 0.3s ease',
-            background: 'var(--vert-foret)',
-            borderTop : menuOuvert ? '1px solid rgba(255,255,255,0.1)' : 'none',
+            transition: 'max-height 0.35s ease',
+            background: '#163829',  // légèrement plus sombre que le fond
+            borderTop : menuOuvert ? '1px solid rgba(255,255,255,0.08)' : 'none',
           }}
         >
           <div className="conteneur" style={{
-            padding      : '1rem 1.5rem',
             display      : 'flex',
             flexDirection: 'column',
-            gap          : '1rem',
+            gap          : '0',
+            padding      : '0.5rem 1.5rem 1rem',
           }}>
-            <Link to="/"        style={{ color: 'var(--blanc)', fontFamily: 'var(--font-display)' }}>Accueil</Link>
-            <Link to="/voyages" style={{ color: 'var(--blanc)', fontFamily: 'var(--font-display)' }}>Voyages</Link>
-            {estConnecte && (
-              <Link to="/profil" style={{ color: 'var(--blanc)', fontFamily: 'var(--font-display)' }}>
-                Mes billets
-              </Link>
-            )}
-            <hr style={{ borderColor: 'rgba(255,255,255,0.15)' }} />
-            {estConnecte ? (
-              <button
-                onClick={handleDeconnexion}
+            {/* Liens de navigation mobile */}
+            {[
+              { to: '/',        label: 'Accueil'    },
+              { to: '/voyages', label: 'Voyages'    },
+              ...(estConnecte ? [{ to: '/profil', label: 'Mes billets' }] : []),
+            ].map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
                 style={{
-                  color      : 'var(--or-soleil)',
-                  background : 'none',
-                  fontFamily : 'var(--font-display)',
-                  fontWeight : 600,
-                  textAlign  : 'left',
-                  border     : 'none',
-                  cursor     : 'pointer',
+                  color         : estActif(to) ? 'var(--or-soleil)' : 'rgba(255,255,255,0.85)',
+                  fontFamily    : 'var(--font-display)',
+                  fontWeight    : estActif(to) ? 700 : 500,
+                  fontSize      : '0.95rem',
+                  padding       : '0.75rem 0',
+                  borderBottom  : '1px solid rgba(255,255,255,0.06)',
+                  textDecoration: 'none',
+                  display       : 'block',
                 }}
               >
-                Déconnexion
-              </button>
-            ) : (
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {label}
+              </Link>
+            ))}
+
+            {/* Actions auth mobile */}
+            <div style={{
+              display  : 'flex',
+              gap      : '0.75rem',
+              marginTop: '0.75rem',
+              flexWrap : 'wrap',
+            }}>
+              {estConnecte ? (
                 <Button
-                  variante="secondaire"
-                  taille="sm"
-                  onClick={() => navigate('/connexion')}
-                  style={{ color: 'var(--blanc)', borderColor: 'var(--blanc)' }}
+                  onClick={handleDeconnexion}
+                  style={{
+                    ...styleBoutonNavbar,
+                    fontSize: '0.9rem',
+                    padding : '0.6rem 1.25rem',
+                  }}
                 >
-                  Connexion
+                  Se déconnecter
                 </Button>
-                <Button variante="or" taille="sm" onClick={() => navigate('/inscription')}>
-                  S'inscrire
-                </Button>
-              </div>
-            )}
+              ) : (
+                <>
+                  <Button
+                    onClick={() => navigate('/connexion')}
+                    style={{
+                      ...styleBoutonNavbar,
+                      fontSize: '0.9rem',
+                      padding : '0.6rem 1.25rem',
+                    }}
+                  >
+                    Connexion
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/inscription')}
+                    style={{
+                      ...styleBoutonOr,
+                      fontSize: '0.9rem',
+                      padding : '0.6rem 1.25rem',
+                    }}
+                  >
+                    S'inscrire
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Spacer navbar fixed */}
+      {/* Spacer pour compenser la navbar fixed */}
       <div style={{ height: '64px' }} />
 
       <style>{`

@@ -32,6 +32,7 @@ import Voyages      from './pages/Voyages'
 import VoyageDetail from './pages/VoyageDetail'
 import Connexion    from './pages/Connexion'
 import Inscription  from './pages/Inscription'
+import Paiement from './pages/Paiement'
 
 // Pages protégées
 import Profil from './pages/Profil'
@@ -125,6 +126,16 @@ const AppRoutes = () => {
               <Profil />
             </RouteProtegee>
           }
+        />
+         
+         // Dans les routes (section routes protégées) :
+        <Route
+        path="/paiement"
+        element={
+          <RouteProtegee>
+            <Paiement /> 
+          </RouteProtegee>
+        }
         />
 
         {/* ── Route 404 → redirection accueil ─────────── */}
