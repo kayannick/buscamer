@@ -48,6 +48,7 @@ urlpatterns = [
     path('api/utilisateurs/', include('utilisateurs.urls')),
     path('api/', include('voyages.urls')),       # → /api/voyages/, /api/agences/, /api/bus/
     path('api/', include('reservations.urls')),  # → /api/reservations/
+    path('api/paiements/', include('paiements.urls')),
 ]
 
 # --------------------------------------------------------

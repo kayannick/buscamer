@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     'utilisateurs',                # Gestion des voyageurs et agents
     'voyages',                     # Agences, bus, trajets
     'reservations',                # Billets, paiements
+    'paiements',                   # Paiements Mobile Money
 
 ]
 

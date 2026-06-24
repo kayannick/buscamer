@@ -1,46 +1,43 @@
 # ============================================================
-
-#
-# RÔLE : Gère la création et la consultation des réservations.
-#        SÉCURITÉ CRITIQUE : un utilisateur ne voit/modifie
-#        QUE SES PROPRES réservations.
-#
-# INTERACTIONS :
-#   ← Utilise : models.py, serializers.py
-#   → Routé par : reservations/urls.py
+#   get_queryset() doit filtrer STRICTEMENT par request.user.
+#   Si IsAuthenticated est actif, request.user est toujours
+#   l'utilisateur du token JWT reçu dans le header.
+#   Le bug venait peut-être d'un cache ou d'une absence de filtre.
 # ============================================================
 
 from rest_framework import viewsets, permissions
+from rest_framework.response import Response
 from .models import Reservation
 from .serializers import ReservationSerializer, ReservationCreateSerializer
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
     """
-    Endpoints :
-      GET  /api/reservations/       → MES réservations uniquement
-      GET  /api/reservations/{id}/  → détail (si c'est la mienne)
-      POST /api/reservations/       → créer une nouvelle réservation
+    Endpoints réservations.
+    SÉCURITÉ ABSOLUE : chaque utilisateur ne voit QUE ses billets.
     """
-
     permission_classes = [permissions.IsAuthenticated]
-    # IsAuthenticated : il FAUT être connecté pour réserver
-    # (cohérent : on doit savoir QUI réserve)
 
     def get_queryset(self):
         """
-        SÉCURITÉ FONDAMENTALE.
+        CORRECTION CRITIQUE :
+        Filtre TOUJOURS par request.user (l'utilisateur du token JWT).
 
-        ENTRÉE  : self.request.user (l'utilisateur authentifié via JWT)
-        SORTIE  : QuerySet filtré sur CET utilisateur uniquement
+        Ajout de select_related pour éviter les requêtes N+1 :
+        - voyage__agence : nom de l'agence dans le serializer
+        - voyage__bus    : type et capacité du bus
+        - utilisateur    : infos du voyageur
 
-        Sans cette surcharge, Reservation.objects.all() renverrait
-        les réservations de TOUT LE MONDE → faille de sécurité majeure
-        (un utilisateur verrait les billets des autres) !
+        Ajout de order_by explicite pour éviter les warnings Django.
         """
         return Reservation.objects.filter(
-            utilisateur=self.request.user
-        ).select_related('voyage', 'voyage__agence', 'voyage__bus')
+            utilisateur=self.request.user  # ← FILTRE STRICT
+        ).select_related(
+            'voyage',
+            'voyage__agence',
+            'voyage__bus',
+            'utilisateur',
+        ).order_by('-date_reservation')   # Plus récentes en premier
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -49,22 +46,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        SURCHARGE de perform_create().
-
-        ENTRÉE  : serializer = instance DÉJÀ VALIDÉE
-                  (validate() du ReservationCreateSerializer
-                   a déjà été exécutée avec succès à ce stade)
-        SORTIE  : rien (None) — sauvegarde l'objet en BDD
-
-        C'EST ICI qu'on injecte l'utilisateur connecté.
-        Rappel : 'utilisateur' n'était PAS dans les fields
-        du ReservationCreateSerializer (Phase 1) — c'est VOLONTAIRE.
-
-        serializer.save(utilisateur=...) :
-        équivaut à faire
-          Reservation.objects.create(
-              **validated_data,
-              utilisateur=self.request.user
-          )
+        Injecte request.user lors de la création.
+        L'utilisateur ne peut PAS se désigner lui-même via l'API.
         """
         serializer.save(utilisateur=self.request.user)
