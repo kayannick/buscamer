@@ -207,3 +207,162 @@ def webhook_paiement(request):
 
         logger.warning(f"Paiement {reference_interne} échoué: {statut_operateur}")
         return Response({'succes': False, 'message': 'Paiement échoué.'})
+    
+    
+    
+# ===========================================================
+# Nouveaux endpoints : statut + PDF + SMS
+# ============================================================
+
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+import io
+
+# pip install reportlab
+# Ajouter 'reportlab' dans requirements.txt
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def statut_paiement(request, reservation_id):
+    """
+    GET /api/paiements/statut/{reservation_id}/
+
+    RÔLE : Permet au frontend de vérifier (polling) si le paiement
+           a été confirmé par l'opérateur via webhook.
+
+    RETOUR :
+      { "statut": "EN_ATTENTE" | "CONFIRME" | "ECHOUE" }
+    """
+    try:
+        reservation = Reservation.objects.get(
+            id         = reservation_id,
+            utilisateur = request.user,
+        )
+    except Reservation.DoesNotExist:
+        return Response({'erreur': 'Réservation introuvable.'}, status=404)
+
+    # Retourne le statut de paiement de la réservation
+    return Response({ 'statut': reservation.statut_paiement })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def generer_billet_pdf(request, reservation_id):
+    """
+    GET /api/reservations/{id}/billet-pdf/
+
+    RÔLE : Génère et retourne un PDF du billet de voyage.
+           Uniquement accessible par le propriétaire du billet.
+
+    RETOUR : fichier PDF binaire (Content-Type: application/pdf)
+    """
+    try:
+        reservation = Reservation.objects.select_related(
+            'voyage', 'voyage__agence', 'voyage__bus', 'utilisateur'
+        ).get(id=reservation_id, utilisateur=request.user)
+    except Reservation.DoesNotExist:
+        return Response({'erreur': 'Billet introuvable.'}, status=404)
+
+    if reservation.statut_paiement != 'CONFIRME':
+        return Response(
+            {'erreur': 'Le billet n\'est disponible qu\'après confirmation du paiement.'},
+            status=400
+        )
+
+    # ── Génération du PDF avec ReportLab ─────────────────────
+    buffer = io.BytesIO()
+    p      = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # ── Fond vert en-tête ─────────────────────────────────────
+    p.setFillColor(colors.HexColor('#1B4332'))
+    p.rect(0, height - 120, width, 120, fill=True, stroke=False)
+
+    # ── Logo texte ────────────────────────────────────────────
+    p.setFillColor(colors.white)
+    p.setFont('Helvetica-Bold', 28)
+    p.drawString(40, height - 55, 'BusCam')
+
+    p.setFillColor(colors.HexColor('#F4A100'))
+    p.setFont('Helvetica', 12)
+    p.drawString(40, height - 75, 'Billet de voyage officiel')
+
+    # ── Numéro de billet ──────────────────────────────────────
+    p.setFillColor(colors.white)
+    p.setFont('Helvetica', 9)
+    p.drawRightString(width - 40, height - 55, f'N° {str(reservation.numero_billet).upper()[:18]}')
+
+    # ── Trajet principal ──────────────────────────────────────
+    voyage = reservation.voyage
+    p.setFillColor(colors.HexColor('#1B4332'))
+    p.setFont('Helvetica-Bold', 22)
+    p.drawString(40, height - 180, voyage.get_ville_depart_display())
+
+    p.setFont('Helvetica', 16)
+    p.drawString(width // 2 - 20, height - 175, '→')
+
+    p.setFont('Helvetica-Bold', 22)
+    p.drawRightString(width - 40, height - 180, voyage.get_ville_arrivee_display())
+
+    # ── Ligne séparatrice ─────────────────────────────────────
+    p.setStrokeColor(colors.HexColor('#E5E7EB'))
+    p.line(40, height - 200, width - 40, height - 200)
+
+    # ── Grille d'informations ─────────────────────────────────
+    infos = [
+        ('Date de départ',    voyage.date_heure_depart.strftime('%d/%m/%Y à %Hh%M')),
+        ('Agence',            voyage.agence.nom),
+        ('Bus',               voyage.bus.immatriculation),
+        ('Type',              voyage.bus.get_type_bus_display()),
+        ('N° de siège',       f'Siège {reservation.numero_siege}'),
+        ('Voyageur',          reservation.utilisateur.get_full_name() or reservation.utilisateur.username),
+        ('Téléphone',         reservation.utilisateur.telephone),
+        ('Montant payé',      f'{reservation.montant_paye} FCFA'),
+        ('Statut',            'CONFIRMÉ ✓'),
+    ]
+
+    y = height - 240
+    for label, valeur in infos:
+        p.setFillColor(colors.HexColor('#6B7280'))
+        p.setFont('Helvetica', 9)
+        p.drawString(40, y, label.upper())
+
+        p.setFillColor(colors.HexColor('#1C1C1E'))
+        p.setFont('Helvetica-Bold', 11)
+        p.drawString(200, y, str(valeur))
+
+        y -= 28
+
+    # ── Numéro de billet complet (bas de page) ────────────────
+    p.setStrokeColor(colors.HexColor('#E5E7EB'))
+    p.line(40, y - 10, width - 40, y - 10)
+
+    p.setFillColor(colors.HexColor('#6B7280'))
+    p.setFont('Helvetica', 8)
+    p.drawString(40, y - 30, 'N° BILLET COMPLET :')
+
+    p.setFillColor(colors.HexColor('#1B4332'))
+    p.setFont('Helvetica-Bold', 10)
+    p.drawString(40, y - 48, str(reservation.numero_billet).upper())
+
+    # ── Pied de page ──────────────────────────────────────────
+    p.setFillColor(colors.HexColor('#9CA3AF'))
+    p.setFont('Helvetica', 8)
+    p.drawString(40, 40, 'BusCam — Plateforme de réservation de bus au Cameroun')
+    p.drawRightString(width - 40, 40, 'support@buscam.cm | +237 6 99 00 00 00')
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+
+    # ── Réponse HTTP avec le PDF ──────────────────────────────
+    nom_fichier = f"BusCam-Billet-{str(reservation.numero_billet)[:8].upper()}.pdf"
+    response    = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+
+    return response    
+    
