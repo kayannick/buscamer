@@ -1,7 +1,6 @@
 
 
 // ============================================================
-// frontend/src/pages/Paiement.jsx — VERSION FINALE CORRIGÉE
 //
 // CORRECTIONS :
 //   1. Gestion de location.state null (page expirée)

@@ -1,5 +1,4 @@
 // ============================================================
-// frontend/src/components/layout/Footer.jsx
 //
 // RÔLE : Pied de page global.
 //        Contexte camerounais : liens utiles, contacts,

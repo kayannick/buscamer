@@ -1,5 +1,4 @@
 // ============================================================
-// frontend/src/components/ui/Badge.jsx
 // Étiquette de statut colorée (voyage, paiement, type de bus)
 // ============================================================
 

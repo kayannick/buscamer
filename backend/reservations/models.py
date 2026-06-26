@@ -1,5 +1,4 @@
 # ============================================================
-# backend/reservations/models.py
 #
 # RÔLE : Représente UN billet acheté par UN voyageur
 #        pour UN voyage spécifique.

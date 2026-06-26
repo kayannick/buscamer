@@ -1,5 +1,4 @@
-// ============================================================
-// frontend/src/components/layout/PageWrapper.jsx
+// ============================================================ 
 //
 // RÔLE : Enveloppe standard pour chaque page.
 //        Assure que le Footer reste toujours en bas,

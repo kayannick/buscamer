@@ -1,6 +1,5 @@
 
 // ============================================================
-// frontend/src/pages/Accueil.jsx — VERSION FINALE
 //
 // MODIFICATIONS :
 //   - Utilise destinations.js (toutes les villes camerounaises)

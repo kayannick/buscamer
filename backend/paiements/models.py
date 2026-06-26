@@ -1,5 +1,4 @@
 # ============================================================
-# backend/paiements/models.py
 #
 # RÔLE : Stocke les transactions de paiement Mobile Money.
 #
