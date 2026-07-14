@@ -1,5 +1,5 @@
 # ============================================================
-# backend/voyages/models.py
+
 #
 # RÔLE : Définit Agence, Bus, Chauffeur, Voyage.
 #        Le cœur du catalogue de l'application.
@@ -14,6 +14,8 @@
 from django.db import models
 from django.conf import settings  # Pour référencer AUTH_USER_MODEL
 from django.db.models import F, Q, CheckConstraint
+from django.utils import timezone
+from datetime     import timedelta
 
 
 class Agence(models.Model):
@@ -186,12 +188,12 @@ class Voyage(models.Model):
     )
 
     ville_depart = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=VilleChoices.choices
     )
 
     ville_arrivee = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=VilleChoices.choices
     )
 
@@ -216,7 +218,7 @@ class Voyage(models.Model):
     prix = models.DecimalField(max_digits=10, decimal_places=2)
 
     statut = models.CharField(
-        max_length=10,
+        max_length=12,
         choices=StatutChoices.choices,
         default=StatutChoices.PROGRAMME
     )
@@ -249,6 +251,7 @@ class Voyage(models.Model):
             f"{self.get_ville_arrivee_display()} "
             f"({self.date_heure_depart.strftime('%d/%m/%Y %H:%M')})"
         )
+        
 
     class Meta:
         verbose_name = "Voyage"
@@ -265,4 +268,80 @@ class Voyage(models.Model):
                 name='depart_different_arrivee'
             )
         ]
+        
+    # ── Propriétés calculées ──────────────────────────────────   
+    @property
+    def date_heure_arrivee(self):
+        """Date/heure d'arrivée estimée."""
+        return self.date_heure_depart + self.duree_estimee
+
+    @property
+    def est_reservable(self):
+        """
+        Un voyage est réservable si :
+          - Statut PROGRAMME
+          - Départ dans plus de 5h (délai minimum de paiement)
+          - Il reste des places
+        """
+        cinq_heures_apres = timezone.now() + timedelta(hours=5)
+        return (
+            self.statut == 'PROGRAMME'
+            and self.date_heure_depart > cinq_heures_apres
+            and self.places_disponibles > 0
+        )
+
+    @property
+    def est_expire(self):
+        """Le voyage est dépassé (date de départ passée)."""
+        return self.date_heure_depart <= timezone.now()
+
+    @property
+    def heures_avant_depart(self):
+        """Nombre d'heures avant le départ (négatif si passé)."""
+        delta = self.date_heure_depart - timezone.now()
+        return delta.total_seconds() / 3600
+
+    @property
+    def places_disponibles(self):
+        """Places non réservées (CONFIRME + EN_ATTENTE valides)."""
+        from reservations.models import Reservation
+        reservees = Reservation.objects.filter(
+            voyage=self,
+            statut_paiement__in=['CONFIRME', 'EN_ATTENTE'],
+        ).count()
+        return max(0, self.bus.capacite - reservees)
+
+    @property
+    def statut_calcule(self):
+        """
+        Statut calculé dynamiquement selon l'heure actuelle.
+        Plus fiable que le champ statut en base.
+        """
+        maintenant = timezone.now()
+        if self.statut == 'ANNULE':
+            return 'ANNULE'
+        if self.date_heure_depart > maintenant:
+            return 'PROGRAMME'
+        if self.date_heure_arrivee > maintenant:
+            return 'EN_COURS'
+        return 'TERMINE'
+
+    def mettre_a_jour_statut(self):
+        """
+        Met à jour le statut en base selon la logique temporelle.
+        Appelé par la management command et les webhooks.
+        """
+        nouveau = self.statut_calcule
+        if self.statut != nouveau and self.statut != 'ANNULE':
+            self.statut = nouveau
+            self.save(update_fields=['statut'])
+        return self.statut
+
+    class Meta:
+        ordering            = ['date_heure_depart']
+        verbose_name        = 'Voyage'
+        verbose_name_plural = 'Voyages'
+
+    def __str__(self):
+        return f"{self.get_ville_depart_display()} → {self.get_ville_arrivee_display()} | {self.date_heure_depart.strftime('%d/%m/%Y %H:%M')}"
 

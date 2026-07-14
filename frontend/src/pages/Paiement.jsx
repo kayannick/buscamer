@@ -1,8 +1,6 @@
-
-
 // ============================================================
 //
-// CORRECTIONS :
+//  :
 //   1. Gestion de location.state null (page expirée)
 //      → Récupère la réservation depuis l'API si state perdu
 //   2. MTN MoMo et Orange Money avec vraie configuration

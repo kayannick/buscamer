@@ -1,7 +1,6 @@
 
 // ============================================================
 //
-// MODIFICATIONS :
 //   - Utilise destinations.js (toutes les villes camerounaises)
 //   - Select groupé par région
 //   - Lignes populaires depuis LIGNES_POPULAIRES

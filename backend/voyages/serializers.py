@@ -168,3 +168,92 @@ class VoyageCreateSerializer(serializers.ModelSerializer):
                 "La ville de départ et d'arrivée doivent être différentes."
             )
         return attrs
+
+
+# ============================================================
+# Viezs Agent — COMPLET AVEC STATS
+# ============================================================
+
+from rest_framework import serializers
+from .models        import Agence, Bus, Chauffeur, Voyage
+
+
+class AgenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Agence
+        fields = ['id', 'nom', 'ville_siege', 'telephone', 'email', 'logo']
+
+
+class ChauffeurSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Chauffeur
+        fields = ['id', 'nom_complet', 'telephone', 'numero_permis']
+
+
+class BusSerializer(serializers.ModelSerializer):
+    chauffeur_attitre = ChauffeurSerializer(read_only=True)
+
+    class Meta:
+        model  = Bus
+        fields = [
+            'id', 'agence', 'immatriculation', 'capacite',
+            'type_bus', 'est_actif', 'chauffeur_attitre'
+        ]
+
+
+class VoyageListSerializer(serializers.ModelSerializer):
+    places_disponibles  = serializers.SerializerMethodField()
+    agence_nom          = serializers.CharField(source='agence.nom', read_only=True)
+    ville_depart_display  = serializers.CharField(source='get_ville_depart_display',  read_only=True)
+    ville_arrivee_display = serializers.CharField(source='get_ville_arrivee_display', read_only=True)
+    type_bus              = serializers.CharField(source='bus.type_bus', read_only=True)
+
+    class Meta:
+        model  = Voyage
+        fields = [
+            'id', 'agence', 'agence_nom',
+            'ville_depart', 'ville_depart_display',
+            'ville_arrivee', 'ville_arrivee_display',
+            'date_heure_depart', 'duree_estimee',
+            'prix', 'statut', 'type_bus', 'places_disponibles'
+        ]
+
+    def get_places_disponibles(self, obj):
+        return obj.places_disponibles
+
+
+class VoyageDetailSerializer(serializers.ModelSerializer):
+    agence                = AgenceSerializer(read_only=True)
+    bus                   = BusSerializer(read_only=True)
+    places_disponibles    = serializers.SerializerMethodField()
+    ville_depart_display  = serializers.CharField(source='get_ville_depart_display',  read_only=True)
+    ville_arrivee_display = serializers.CharField(source='get_ville_arrivee_display', read_only=True)
+
+    class Meta:
+        model  = Voyage
+        fields = [
+            'id', 'agence', 'bus',
+            'ville_depart', 'ville_depart_display',
+            'ville_arrivee', 'ville_arrivee_display',
+            'date_heure_depart', 'duree_estimee',
+            'prix', 'statut', 'places_disponibles'
+        ]
+
+    def get_places_disponibles(self, obj):
+        return obj.places_disponibles
+
+
+class VoyageCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Voyage
+        fields = [
+            'id', 'agence', 'bus', 'ville_depart', 'ville_arrivee',
+            'date_heure_depart', 'duree_estimee', 'prix', 'statut'
+        ]
+
+    def validate(self, attrs):
+        if attrs.get('ville_depart') == attrs.get('ville_arrivee'):
+            raise serializers.ValidationError(
+                "La ville de départ et d'arrivée doivent être différentes."
+            )
+        return attrs

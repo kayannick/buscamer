@@ -1,11 +1,6 @@
 
 // ============================================================
 //
-// CORRECTIONS :
-//   - Boutons Connexion/Déconnexion : texte blanc visible sur fond vert
-//   - Hover des boutons adapté au fond sombre (pas de fond blanc)
-//   - Menu mobile : même correction appliquée
-//
 // INTERACTIONS :
 //   ← Consomme : hooks/useAuth.js (utilisateur, estConnecte, deconnexion)
 //   ← Utilise  : react-router-dom (Link, useLocation, useNavigate)
@@ -38,6 +33,8 @@ const Navbar = () => {
   }
 
   const estActif = (path) => location.pathname === path
+
+  const estPageAgent = location.pathname.startsWith('/agent')
 
   // Style des liens de navigation
   const lienStyle = (path) => ({
@@ -137,6 +134,24 @@ const Navbar = () => {
             <Link to="/voyages" style={lienStyle('/voyages')}>Voyages</Link>
             {estConnecte && (
               <Link to="/profil" style={lienStyle('/profil')}>Mes billets</Link>
+            )}
+            
+
+            {estConnecte && utilisateur?.role === 'AGENT' && (
+              <Link
+                to="/agent/dashboard"
+                style={{
+                  ...lienStyle('/agent/dashboard'),
+                   background  : 'rgba(244,161,0,0.15)',
+                   padding     : '0.25rem 0.75rem',
+                   borderRadius: 'var(--radius-sm)',
+                   borderBottom: 'none',
+                   color       : 'var(--or-soleil)',
+                   fontWeight  : 700,
+                  }}
+                >
+                  📊 Dashboard Agent
+              </Link>
             )}
           </div>
 
@@ -346,7 +361,12 @@ const Navbar = () => {
       </nav>
 
       {/* Spacer pour compenser la navbar fixed */}
-      <div style={{ height: '64px' }} />
+      {/* <div style={{ height: '64px' }} /> */}
+      {/* Spacer uniquement sur les pages NON-agent */}
+      {!estPageAgent && <div style={{ height: '64px' }} />}
+      
+      
+
 
       <style>{`
         .nav-desktop { display: flex !important; }

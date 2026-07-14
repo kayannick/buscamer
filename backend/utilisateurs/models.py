@@ -1,7 +1,5 @@
 
 # ============================================================
-# backend/utilisateurs/models.py
-#
 # RÔLE : Définit la structure de la table des utilisateurs.
 #        Remplace le modèle User par défaut de Django.
 #
@@ -41,6 +39,8 @@ class Utilisateur(AbstractUser):
     telephone = models.CharField(
         max_length=15,
         unique=True,
+        null=True,
+        blank=True,
         help_text="Format: 6XXXXXXXX (sans le +237)"
     )
 

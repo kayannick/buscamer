@@ -1,162 +1,191 @@
 // ============================================================
-//
-// RÔLE : Composant racine. Configure le routage et
-//        enveloppe l'app dans les Providers nécessaires.
-//
-// ORDRE DES PROVIDERS (important) :
-//   BrowserRouter       → gère l'historique de navigation
-//   QueryClientProvider → React Query (cache des appels API)
-//   AuthProvider        → état de connexion global
-//
-// ROUTES PROTÉGÉES :
-//   <RouteProtegee> redirige vers /connexion si non connecté.
-//   Elle attend que chargement=false avant de décider
-//   (évite une redirection prématurée au démarrage).
-//
-// INTERACTIONS :
-//   ← Monté par : main.jsx
-//   → Enveloppe : toutes les pages
+// // // RÔLE : Composant racine. Configure le routage et
+// // //        enveloppe l'app dans les Providers nécessaires.
+// // //
+// // // ORDRE DES PROVIDERS (important) :
+// // //   BrowserRouter       → gère l'historique de navigation
+// // //   QueryClientProvider → React Query (cache des appels API)
+// // //   AuthProvider        → état de connexion global
+// // //
+// // // ROUTES PROTÉGÉES :
+// // //   <RouteProtegee> redirige vers /connexion si non connecté.
+// // //   Elle attend que chargement=false avant de décider
+// // //   (évite une redirection prématurée au démarrage).
+// // //
+// // // INTERACTIONS :
+// // //   ← Monté par : main.jsx
+// // //   → Enveloppe : toutes les pages
 // ============================================================
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider }        from '@tanstack/react-query'
-import AuthProvider                                from './context/AuthProvider'
-import useAuth                                     from './hooks/useAuth'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import Navbar                                    from './components/layout/Navbar'
+import Spinner                                   from './components/ui/Spinner'
+import useAuth                                   from './hooks/useAuth'
 
-// Layout
-import Navbar from './components/layout/Navbar'
+// Pages voyageur
+import Accueil       from './pages/Accueil'
+import Voyages       from './pages/Voyages'
+import VoyageDetail  from './pages/VoyageDetail'
+import Connexion     from './pages/Connexion'
+import Inscription   from './pages/Inscription'
+import Profil        from './pages/Profil'
+import Paiement      from './pages/Paiement'
 
-// Pages publiques
-import Accueil      from './pages/Accueil'
-import Voyages      from './pages/Voyages'
-import VoyageDetail from './pages/VoyageDetail'
-import Connexion    from './pages/Connexion'
-import Inscription  from './pages/Inscription'
-import Paiement from './pages/Paiement'
+// Pages agent
+import AgentDashboard    from './pages/agent/AgentDashboard'
+import AgentVoyages      from './pages/agent/AgentVoyages'
+import AgentReservations from './pages/agent/AgentReservations'
+import AgentBus          from './pages/agent/AgentBus'
+import AgentVoyageurs    from './pages/agent/AgentVoyageurs'
 
-// Pages protégées
-import Profil from './pages/Profil'
-
-// ── Configuration de React Query ─────────────────────────────
-// QueryClient : cerveau du cache des appels API.
-// Configuré UNE FOIS ici, disponible partout via le Provider.
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry    : 1,               // Réessaie 1 fois en cas d'erreur
-      staleTime: 5 * 60 * 1000,  // Données "fraîches" pendant 5 min
-                                  // → pas de re-fetch si < 5 min
-    },
-  },
-})
-
-// ── Route protégée ───────────────────────────────────────────
-// Affiche un spinner pendant le chargement initial (token check).
-// Redirige vers /connexion si l'utilisateur n'est pas connecté.
-// Affiche le contenu si l'utilisateur est connecté.
+// ── Route protégée voyageur ───────────────────────────────────
 const RouteProtegee = ({ children }) => {
   const { estConnecte, chargement } = useAuth()
 
-  // Pendant la vérification du token → spinner neutre
-  // (évite un flash de redirection si le token est valide)
   if (chargement) {
     return (
       <div style={{
-        minHeight      : '80vh',
-        display        : 'flex',
-        alignItems     : 'center',
-        justifyContent : 'center',
-        flexDirection  : 'column',
-        gap            : '1rem',
+        minHeight     : '60vh',
+        display       : 'flex',
+        alignItems    : 'center',
+        justifyContent: 'center',
       }}>
-        <svg
-          width="36" height="36" viewBox="0 0 24 24"
-          fill="none" stroke="var(--vert-foret)" strokeWidth="2.5"
-          style={{ animation: 'spin 0.8s linear infinite' }}
-        >
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-          <path
-            d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-            strokeLinecap="round"
-          />
-        </svg>
-        <p style={{
-          fontFamily : 'var(--font-display)',
-          color      : 'var(--gris-doux)',
-          fontSize   : '0.9rem',
-        }}>
-          Chargement...
-        </p>
+        <Spinner taille="lg" />
       </div>
     )
   }
 
-  // Non connecté → redirection vers la page de connexion
-  // replace=true : remplace l'entrée dans l'historique
-  // (le bouton "retour" ne revient pas sur la page protégée)
-  if (!estConnecte) {
-    return <Navigate to="/connexion" replace />
-  }
-
-  // Connecté → affiche le contenu protégé
+  if (!estConnecte) return <Navigate to="/connexion" replace />
   return children
 }
 
-// ── Composant des routes ─────────────────────────────────────
-// Séparé de App pour pouvoir utiliser useAuth()
-// qui nécessite d'être DANS le AuthProvider
-const AppRoutes = () => {
-  return (
-    <>
-      <Navbar />
-      <Routes>
+// ── Route protégée agent ──────────────────────────────────────
+const RouteAgent = ({ children }) => {
+  const { estConnecte, utilisateur, chargement } = useAuth()
 
-        {/* ── Routes publiques ─────────────────────────── */}
-        <Route path="/"              element={<Accueil />}      />
-        <Route path="/voyages"       element={<Voyages />}      />
-        <Route path="/voyages/:id"   element={<VoyageDetail />} />
-        <Route path="/connexion"     element={<Connexion />}    />
-        <Route path="/inscription"   element={<Inscription />}  />
+  if (chargement) {
+    return (
+      <div style={{
+        minHeight     : '100vh',
+        display       : 'flex',
+        alignItems    : 'center',
+        justifyContent: 'center',
+        background    : '#F1F5F9',
+      }}>
+        <Spinner taille="lg" />
+      </div>
+    )
+  }
 
-        {/* ── Routes protégées ─────────────────────────── */}
-        <Route
-          path="/profil"
-          element={
-            <RouteProtegee>
-              <Profil />
-            </RouteProtegee>
-          }
-        />
-         
-         // Dans les routes (section routes protégées) :
-        <Route
+  if (!estConnecte)                  return <Navigate to="/connexion" replace />
+  if (utilisateur?.role !== 'AGENT') return <Navigate to="/"         replace />
+  return children
+}
+
+// ── Composant Navbar conditionnel ─────────────────────────────
+// Ce composant utilise useLocation() → doit être DANS le Router.
+// Il est placé ici, à l'intérieur de AppRoutes qui est
+// lui-même rendu à l'intérieur du BrowserRouter (voir main.jsx).
+const NavbarConditionnelle = () => {
+  const location     = useLocation()  // ✅ valide car dans le Router
+  const estPageAgent = location.pathname.startsWith('/agent')
+
+  // Les pages agent ont leur propre sidebar → pas de Navbar voyageur
+  if (estPageAgent) return null
+
+  return <Navbar />
+}
+
+// ── Routes principales ────────────────────────────────────────
+// AppRoutes est rendu à l'intérieur de BrowserRouter dans main.jsx
+// → tous les hooks de routing (useLocation, useNavigate) sont valides
+const AppRoutes = () => (
+  <>
+    {/* Navbar uniquement sur les pages voyageur */}
+    <NavbarConditionnelle />
+
+    <Routes>
+      {/* ── Pages publiques ── */}
+      <Route path="/"            element={<Accueil />}      />
+      <Route path="/voyages"     element={<Voyages />}      />
+      <Route path="/voyages/:id" element={<VoyageDetail />} />
+      <Route path="/connexion"   element={<Connexion />}    />
+      <Route path="/inscription" element={<Inscription />}  />
+
+      {/* ── Pages protégées voyageur ── */}
+      <Route
+        path="/profil"
+        element={
+          <RouteProtegee>
+            <Profil />
+          </RouteProtegee>
+        }
+      />
+      <Route
         path="/paiement"
         element={
           <RouteProtegee>
-            <Paiement /> 
+            <Paiement />
           </RouteProtegee>
         }
-        />
+      />
 
-        {/* ── Route 404 → redirection accueil ─────────── */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+      {/* ── Pages agent (interface séparée, sans Navbar voyageur) ── */}
+      <Route
+        path="/agent"
+        element={<Navigate to="/agent/dashboard" replace />}
+      />
+      <Route
+        path="/agent/dashboard"
+        element={
+          <RouteAgent>
+            <AgentDashboard />
+          </RouteAgent>
+        }
+      />
+      <Route
+        path="/agent/voyages"
+        element={
+          <RouteAgent>
+            <AgentVoyages />
+          </RouteAgent>
+        }
+      />
+      <Route
+        path="/agent/reservations"
+        element={
+          <RouteAgent>
+            <AgentReservations />
+          </RouteAgent>
+        }
+      />
+      <Route
+        path="/agent/bus"
+        element={
+          <RouteAgent>
+            <AgentBus />
+          </RouteAgent>
+        }
+      />
+      <Route
+        path="/agent/voyageurs"
+        element={
+          <RouteAgent>
+            <AgentVoyageurs />
+          </RouteAgent>
+        }
+      />
 
-      </Routes>
-    </>
-  )
-}
+      {/* ── Fallback : page inconnue → accueil ── */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  </>
+)
 
-// ── Composant racine ─────────────────────────────────────────
-const App = () => {
-  return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  )
-}
+// ── Composant App racine ──────────────────────────────────────
+// App lui-même N'utilise AUCUN hook de routing.
+// Il ne fait que rendre AppRoutes.
+// Le BrowserRouter est dans main.jsx (voir ci-dessous).
+const App = () => <AppRoutes />
 
 export default App

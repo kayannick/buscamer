@@ -1,32 +1,54 @@
 // ============================================================
+// 
+// //
+// // RÔLE : Point d'entrée de l'application React.
+// //        Monte l'arbre de composants dans le DOM.
+// //
+// // FLUX :
+// //   1. Vite charge index.html
+// //   2. index.html charge ce fichier via <script type="module">
+// //   3. Ce fichier monte <App /> dans <div id="root">
+// //      (le div "root" est dans index.html)
 //
-// RÔLE : Point d'entrée de l'application React.
-//        Monte l'arbre de composants dans le DOM.
+// RÈGLE ABSOLUE :
+//   BrowserRouter doit englober TOUT ce qui utilise
+//   useLocation, useNavigate, useParams, <Link>, <Route>...
 //
-// FLUX :
-//   1. Vite charge index.html
-//   2. index.html charge ce fichier via <script type="module">
-//   3. Ce fichier monte <App /> dans <div id="root">
-//      (le div "root" est dans index.html)
+//   App.jsx contient des composants qui utilisent ces hooks
+//   → BrowserRouter doit être ICI, dans main.jsx,
+//     AVANT le rendu de <App />.
 // ============================================================
 
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App.jsx'
+import { StrictMode }       from 'react'
+import { createRoot }       from 'react-dom/client'
+import { BrowserRouter }    from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import  { AuthProvider }      from './context/AuthProvider'
+import App                  from './App'
 import './index.css'
 
-// document.getElementById('root') → le <div id="root"> dans index.html
-// createRoot() → crée un "root" React 18 (API moderne, remplace ReactDOM.render)
-// .render()    → monte App dans ce root
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry          : 1,
+      refetchOnWindowFocus: false,
+      staleTime      : 5 * 60 * 1000,
+    },
+  },
+})
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     {/*
-      StrictMode : en développement seulement (retiré en prod par Vite),
-      détecte les mauvaises pratiques :
-      - Effets exécutés 2 fois (pour détecter les effets non nettoyés)
-      - APIs dépréciées signalées
-      - Pas d'impact sur les performances en production
+      BrowserRouter EN PREMIER — englobe tout.
+      Permet useLocation/useNavigate partout dans l'arbre.
     */}
-    <App />
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
   </StrictMode>
 )

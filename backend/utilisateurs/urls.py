@@ -8,7 +8,7 @@
 
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import InscriptionView, ProfilView
+from .views import InscriptionView, ProfilView, BusCamTokenObtainPairView
 
 urlpatterns = [
     # POST /api/utilisateurs/inscription/
@@ -28,6 +28,6 @@ urlpatterns = [
     #   Body  : {"refresh": "eyJ..."}
     #   Réponse : {"access": "eyJ..."}  (nouveau token d'accès)
     # ----------------------------------------------------------
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/',         BusCamTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(),          name='token_refresh'),
 ]

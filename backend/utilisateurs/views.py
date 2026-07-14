@@ -7,7 +7,18 @@
 # INTERACTIONS :
 #   ← Utilise : serializers.py (InscriptionSerializer, UtilisateurSerializer)
 #   → Routé par : utilisateurs/urls.py
+#
+# MODIFICATION : La vue de connexion (obtention token JWT)
+# doit retourner le role dans la réponse pour que le frontend
+# puisse rediriger selon le rôle sans faire un appel supplémentaire.
+
+# AJOUT : BusCamTokenSerializer retourne le rôle dans la réponse
+# JWT pour que le frontend puisse rediriger sans appel supplémentaire.
 # ============================================================
+
+from rest_framework_simplejwt.views      import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework                      import serializers
 
 from rest_framework import generics, permissions
 from .models import Utilisateur
@@ -66,3 +77,27 @@ class ProfilView(generics.RetrieveUpdateAPIView):
           à request.user AVANT que cette méthode soit appelée.
         """
         return self.request.user
+
+
+
+class BusCamTokenSerializer(TokenObtainPairSerializer):
+    """
+    Surcharge JWT : ajoute role + nom dans la réponse de connexion.
+    Permet au frontend de rediriger immédiatement selon le rôle.
+    """
+
+    def validate(self, attrs):
+        # Appel du validate parent (génère access + refresh tokens)
+        data = super().validate(attrs)
+
+        # Ajoute les infos utilisateur dans la réponse
+        data['role']       = self.user.role
+        data['username']   = self.user.username
+        data['first_name'] = self.user.first_name
+        data['last_name']  = self.user.last_name
+
+        return data
+
+
+class BusCamTokenObtainPairView(TokenObtainPairView):
+    serializer_class = BusCamTokenSerializer

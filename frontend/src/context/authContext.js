@@ -10,6 +10,11 @@
 
 import { createContext } from 'react'
 
-const AuthContext = createContext(null)
+export const AuthContext = createContext({
+  utilisateur        : null,
+  estConnecte        : false,
+  chargement         : true,
+  chargerUtilisateur : async () => null,
+  deconnexion        : () => {},
+})
 
-export default AuthContext

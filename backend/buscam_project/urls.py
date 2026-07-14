@@ -49,6 +49,9 @@ urlpatterns = [
     path('api/', include('voyages.urls')),       # → /api/voyages/, /api/agences/, /api/bus/
     path('api/', include('reservations.urls')),  # → /api/reservations/
     path('api/paiements/', include('paiements.urls')),
+    
+    # Ajouter cette ligne dans urlpatterns :
+    path('api/agent/', include('voyages.urls_agent')),
 ]
 
 # --------------------------------------------------------
@@ -57,4 +60,4 @@ urlpatterns = [
 # dédié (Nginx) s'en charge.
 # --------------------------------------------------------
 if settings.DEBUG:
-    urlpatterns 
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -15,20 +15,10 @@
 //   → Utilisé par : Navbar.jsx, Connexion.jsx, ProfilPage.jsx, etc.
 // ============================================================
 
+
 import { useContext } from 'react'
-import AuthContext from '../context/authContext'  // ← modifié
+import { AuthContext } from '../context/authContext'
 
-const useAuth = () => {
-  const contexte = useContext(AuthContext)
- 
-  // Sécurité : si useAuth() est appelé en dehors de AuthProvider
-  if (!contexte) {
-    throw new Error(
-      "useAuth() doit être utilisé à l'intérieur d'un <AuthProvider>."
-    )
-  }
-
-  return contexte
-}
+const useAuth = () => useContext(AuthContext)
 
 export default useAuth

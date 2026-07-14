@@ -1,98 +1,75 @@
-// ============================================================
+//  ============================================================
+// 
+//  RÔLE : Toutes les fonctions liées aux voyages.
+// 
+//  INTERACTIONS :
+//    → Utilise : axiosConfig.js (apiClient)
+//    ← Appelé par : hooks/useVoyages.js
+//                   pages/VoyageDetail.jsx
+//                   pages/Accueil.jsx
 //
-// RÔLE : Toutes les fonctions liées aux voyages.
+// 
+//  CORRECTION : rechercherVoyages() envoie les paramètres
+//  de filtre correctement sans valeurs vides.
 //
-// INTERACTIONS :
-//   → Utilise : axiosConfig.js (apiClient)
-//   ← Appelé par : hooks/useVoyages.js
-//                  pages/VoyageDetail.jsx
-//                  pages/Accueil.jsx
+//   Django REST Framework avec pagination retourne :
+//   { count: 5, next: null, previous: null, results: [...] }
+//   et NON pas un tableau direct [...].
+//
+//   Si pagination activée → il faut lire response.data.results
+//   Si pagination désactivée → response.data est le tableau
+//
+//   Cette fonction gère LES DEUX cas automatiquement.
 // ============================================================
 
 import apiClient from './axiosConfig'
 
 /**
- * Rechercher des voyages selon des critères.
+ * Recherche des voyages disponibles.
  *
- * ENTRÉE :
- *   criteres = {
- *     ville_depart  : 'YAOUNDE',
- *     ville_arrivee : 'DOUALA',
- *     date          : '2026-06-18'  (optionnel)
- *   }
+ * GÈRE DEUX FORMATS DE RÉPONSE DJANGO :
+ *   Format paginé  : { count, results: [...] } → retourne results
+ *   Format direct  : [...]                     → retourne tel quel
  *
- * SORTIE : tableau de voyages (VoyageListSerializer)
- *
- * ENDPOINT : GET /api/voyages/?ville_depart=YAOUNDE&ville_arrivee=DOUALA&date=...
- * PERMISSION : AllowAny
- *
- * NOTE SUR params :
- *   Axios transforme l'objet params en query string automatiquement.
- *   { ville_depart: 'YAOUNDE' } → ?ville_depart=YAOUNDE
- *   Les valeurs undefined ou vides sont ignorées par Axios.
+ * @param {Object} params - { ville_depart?, ville_arrivee?, date? }
+ * @returns {Promise<Array>} - tableau de voyages
  */
-export const rechercherVoyages = async (criteres = {}) => {
-  // Nettoie les valeurs vides avant d'envoyer
-  const params = {}
-  if (criteres.ville_depart)  params.ville_depart  = criteres.ville_depart
-  if (criteres.ville_arrivee) params.ville_arrivee = criteres.ville_arrivee
-  if (criteres.date)          params.date          = criteres.date
+export const rechercherVoyages = async (params = {}) => {
+  // Ne transmet que les paramètres non vides
+  const queryParams = {}
+  if (params.ville_depart)  queryParams.ville_depart  = params.ville_depart
+  if (params.ville_arrivee) queryParams.ville_arrivee = params.ville_arrivee
+  if (params.date)          queryParams.date           = params.date
 
-  const response = await apiClient.get('/voyages/', { params })
+  const response = await apiClient.get('/voyages/', { params: queryParams })
+  const data     = response.data
 
-  // DRF avec pagination renvoie { count, next, previous, results: [...] }
-  // Sans pagination renvoie directement [...]
-  return response.data.results ?? response.data
+  // ── Gestion des deux formats de réponse ──────────────────
+  // Format paginé DRF : { count: N, results: [...] }
+  if (data && Array.isArray(data.results)) {
+    return data.results
+  }
+
+  // Format direct : [...]
+  if (Array.isArray(data)) {
+    return data
+  }
+
+  // Sécurité : retourne tableau vide si format inattendu
+  console.warn('Format de réponse inattendu pour /voyages/ :', data)
+  return []
 }
 
-/**
- * Récupérer le détail complet d'un voyage.
- *
- * ENTRÉE : id (number) — identifiant du voyage
- *
- * SORTIE : objet voyage complet (VoyageDetailSerializer)
- *          inclut agence, bus et chauffeur imbriqués
- *
- * ENDPOINT : GET /api/voyages/{id}/
- * PERMISSION : AllowAny
- */
 export const getVoyageDetail = async (id) => {
   const response = await apiClient.get(`/voyages/${id}/`)
   return response.data
 }
 
-/**
- * Récupérer la liste des sièges occupés pour un voyage.
- *
- * ENTRÉE : voyageId (number)
- *
- * SORTIE : tableau d'entiers [3, 7, 12, ...]
- *          (numéros de sièges déjà confirmés)
- *
- * ENDPOINT : GET /api/voyages/{id}/sieges-occupes/
- * PERMISSION : AllowAny
- *
- * Utilisé par GrilleDesSeats pour griser les sièges pris.
- */
 export const getSiegesOccupes = async (voyageId) => {
-  try {
-    const response = await apiClient.get(`/voyages/${voyageId}/sieges-occupes/`)
-    return response.data
-  } catch {
-    // Si l'endpoint n'existe pas encore → grille vide (tous libres)
-    return []
-  }
-}
-
-/**
- * Récupérer la liste de toutes les agences.
- *
- * SORTIE : tableau d'agences (AgenceSerializer)
- *
- * ENDPOINT : GET /api/agences/
- * PERMISSION : AllowAny
- */
-export const getAgences = async () => {
-  const response = await apiClient.get('/agences/')
-  return response.data.results ?? response.data
+  const response = await apiClient.get(`/voyages/${voyageId}/sieges-occupes/`)
+  // Gère aussi les deux formats pour les sièges
+  const data = response.data
+  if (Array.isArray(data.results)) return data.results
+  if (Array.isArray(data))         return data
+  return []
 }
