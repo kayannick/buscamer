@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 # ============================================================
-# backend/buscam_project/settings.py
 #
 # RÔLE : Cerveau de configuration de tout le projet Django.
 #        Django lit ce fichier AU DÉMARRAGE du serveur.
@@ -56,7 +55,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # JAMAIS exposée en production. Lue depuis .env.
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#!&8y!$n!nxq#^$g!04fc5*my^&o#&)#+$7ls@p4@k5ps3&ga-'
+SECRET_KEY = config('SECRET_KEY')
 
 
 # En mode DEBUG=True :
