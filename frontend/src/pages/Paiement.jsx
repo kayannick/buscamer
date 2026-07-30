@@ -121,14 +121,29 @@ const Paiement = () => {
   const { mutate: payer, isPending: paiementEnCours } = useMutation({
     mutationFn: initierPaiementAPI,
     onSuccess : (data) => {
-        // eslint-disable-next-line react-hooks/purity
-        const fallbackRef = 'TXN-' + Date.now();
-        const finalRef =  data.reference_transaction || fallbackRef
+      setRef(data.reference_transaction || '')
 
-      setRef( finalRef )
-      setEtape('attente')
-      // Lance le polling pour vérifier le statut toutes les 5s
-      lancerPolling(reservationId)
+      if (data.payment_url) {
+        // window.location.assign(data.payment_url)
+        // ORANGE MONEY : redirige vers la page Orange
+        // L'utilisateur paie sur le site Orange
+        // Orange appelle notre webhook → on reçoit la confirmation
+        // eslint-disable-next-line react-hooks/immutability
+        window.location.href = data.payment_url
+      } else {
+        // MTN MOMO : reste sur la page, attend la validation PIN
+        setEtape('attente')
+        lancerPolling(reservationId)
+      }
+
+        // esl int-disable-next-line react-hooks/purity
+      //   const fallbackRef = 'TXN-' + Date.now();
+      //   const finalRef =  data.reference_transaction || fallbackRef
+
+      // setRef( finalRef )
+      // setEtape('attente')
+      // // Lance le polling pour vérifier le statut toutes les 5s
+      // lancerPolling(reservationId)
     },
     onError: (err) => {
       const msg = err.response?.data

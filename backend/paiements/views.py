@@ -869,3 +869,105 @@ def generer_billet_pdf(request, reservation_id):
     response['Access-Control-Allow-Origin']   = '*'
     response['Access-Control-Expose-Headers'] = 'Content-Disposition'
     return response
+
+
+
+# ============================================================
+# backend/paiements/views.py
+#
+# MODIFICATIONS :
+#   - Remplace l'ancien envoyer_sms_confirmation()
+#   - Utilise notification_service (SMS + WhatsApp)
+#   - Log complet des résultats d'envoi
+# ============================================================
+
+from .notifications import notification_service
+
+def _confirmer_paiement(paiement, reference_operateur):
+    """
+    Confirme un paiement et envoie les notifications.
+    Appelée par les webhooks MTN et Orange.
+    """
+    from django.utils import timezone
+
+    paiement.statut              = paiement.StatutChoices.CONFIRME
+    paiement.reference_operateur = reference_operateur
+    paiement.date_confirmation   = timezone.now()
+    paiement.save()
+
+    reservation = paiement.reservation
+    reservation.statut_paiement = 'CONFIRME'
+    reservation.save()
+
+    # ── Envoi des notifications ───────────────────────────────
+    voyage    = reservation.voyage
+    utilisateur = reservation.utilisateur
+
+    try:
+        resultats = notification_service.envoyer_confirmation_paiement_mobile(
+            telephone     = utilisateur.telephone,
+            nom           = utilisateur.get_full_name() or utilisateur.username,
+            numero_billet = str(reservation.numero_billet),
+            trajet        = f"{voyage.get_ville_depart_display()} → {voyage.get_ville_arrivee_display()}",
+            date_depart   = voyage.date_heure_depart.strftime('%d/%m/%Y a %Hh%M'),
+            siege         = reservation.numero_siege,
+            montant       = int(reservation.montant_paye),
+        )
+
+        logger.info(
+            f"Notifications paiement {reservation.id}: "
+            f"SMS={resultats['sms'].get('succes')} "
+            f"WA={resultats['whatsapp'].get('succes')}"
+        )
+
+    except Exception as e:
+        # Ne jamais bloquer la confirmation pour une notification
+        logger.error(f"Erreur notification après confirmation: {e}")
+
+    logger.info(
+        f"Paiement {paiement.reference_interne} confirmé → "
+        f"Réservation #{reservation.id}"
+    )
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def valider_paiement_especes(request, reservation_id):
+    """
+    Validation espèces par l'agent.
+    Envoie confirmation SMS + WhatsApp au voyageur.
+    """
+    # ... vérifications existantes ...
+
+    Reservation.statut_paiement = 'CONFIRME'
+    Reservation.save(update_fields=['statut_paiement'])
+
+    # ── Notification confirmation espèces ─────────────────────
+    voyage      = Reservation.voyage
+    utilisateur = Reservation.utilisateur
+
+    try:
+        resultats = notification_service.envoyer_confirmation_especes(
+            telephone     = utilisateur.telephone,
+            nom           = utilisateur.get_full_name() or utilisateur.username,
+            numero_billet = str(Reservation.numero_billet),
+            trajet        = f"{voyage.get_ville_depart_display()} → {voyage.get_ville_arrivee_display()}",
+            date_depart   = voyage.date_heure_depart.strftime('%d/%m/%Y a %Hh%M'),
+            siege         = Reservation.numero_siege,
+            montant       = int(Reservation.montant_paye),
+        )
+
+        logger.info(
+            f"Confirmation espèces notifiée: "
+            f"SMS={resultats['sms'].get('succes')} "
+            f"WA={resultats['whatsapp'].get('succes')}"
+        )
+
+    except Exception as e:
+        logger.error(f"Erreur notification espèces: {e}")
+
+    return Response({
+        'succes'        : True,
+        'message'       : f"Billet {str(Reservation.numero_billet)[:8].upper()} confirmé. SMS envoyé.",
+        'nouveau_statut': 'CONFIRME',
+    })
