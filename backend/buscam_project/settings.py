@@ -72,7 +72,8 @@ DEBUG = True
 # config(..., cast=Csv()) transforme "localhost,127.0.0.1"
 # en liste Python : ['localhost', '127.0.0.1']
 
-ALLOWED_HOSTS = ['https://buscamer.onrender.com', 'localhost', '127.0.0.1']
+# ALLOWED_HOSTS = ['https://buscamer.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['*']   # ⚠️ Dev seulement ! Ne jamais mettre * en prod !
 
 
 # ------------------------------------------------------------
