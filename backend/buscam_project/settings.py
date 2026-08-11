@@ -51,7 +51,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # En prod : votre-app.onrender.com + localhost pour les health checks Render
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='localhost,127.0.0.1',
+    default='https://buscamer.onrender.com',
     cast=Csv()
 )
 
