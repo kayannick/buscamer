@@ -49,12 +49,12 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Domaines autorisés à accéder à ce serveur Django.
 # En dev  : localhost, 127.0.0.1
 # En prod : votre-app.onrender.com + localhost pour les health checks Render
-ALLOWED_HOSTS = config(
-    'ALLOWED_HOSTS',
-    default='buscamer.onrender.com,localhost,127.0.0.1',
-    cast=Csv()
-)
-
+# ALLOWED_HOSTS = config(
+#     'ALLOWED_HOSTS',
+#     default='buscamer.onrender.com,localhost,127.0.0.1',
+#     cast=Csv()
+# )
+ALLOWED_HOSTS = ['buscamer.onrender.com', 'localhost', '127.0.0.1']
 
 # ============================================================
 # SECTION 3 — APPLICATIONS INSTALLÉES
