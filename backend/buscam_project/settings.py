@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'rest_framework',               # Django REST Framework (notre API)
     'rest_framework.authtoken',     # Tokens d'authentification DRF
     'rest_framework_simplejwt',     # Authentification JWT (JSON Web Token)
+    'rest_framework_simplejwt.token_blacklist',  # ← AJOUTER (requis par ROTATE_REFRESH_TOKENS)
     'corsheaders',                  # CORS : autorise React à parler à Django
     'django_filters',               # Filtres avancés sur les querysets
 

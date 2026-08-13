@@ -27,9 +27,23 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.http     import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns 
+
+def api_accueil(request):
+    """
+    Vue de santé (health check) pour Render.
+    Render appelle "/" pour vérifier que le serveur fonctionne.
+    Retourne 200 OK → Render sait que l'app est vivante.
+    """
+    return JsonResponse({
+        'statut'  : 'ok',
+        'service' : 'BusCam API',
+        'version' : '1.0.0',
+        'docs'    : '/api/',
+    })
 
 urlpatterns = [
     # Interface d'administration Django
