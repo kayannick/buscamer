@@ -46,6 +46,9 @@ def api_accueil(request):
     })
 
 urlpatterns = [
+    # Santé de l'application pour Render (health check)
+    path('', api_accueil),
+
     # Interface d'administration Django
     path('admin/', admin.site.urls),
 
